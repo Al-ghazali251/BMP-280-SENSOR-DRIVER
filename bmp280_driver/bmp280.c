@@ -1,5 +1,5 @@
 #include "bmp280.h"
-
+#include <stdio.h>
 #include <unistd.h>
 
 
@@ -41,9 +41,17 @@ int bmp280_read_calibration(struct bmp280 *dev)
     uint8_t calib_data[24];
 
     /* Read calibration registers 0x88 to 0x9F */
-    if (bmp280_read_regs(dev, 0x88, calib_data, 24) < 0)
+    if (bmp280_read_regs(dev, 0x88, calib_data, 24) < 0){
         return -1;
+	printf("Calibration bytes:\n");}
 
+for (int i = 0; i < 24; i++)
+{
+    printf("%02X ", calib_data[i]);
+
+    if ((i + 1) % 8 == 0)
+        printf("\n");
+}
 
     /* Temperature calibration values */
 
@@ -181,6 +189,16 @@ int bmp280_read_measurements(struct bmp280 *dev,
                          data,
                          6) < 0)
         return -1;
+printf("Measurement bytes: ");
+
+for (int i = 0; i < 6; i++)
+{
+    printf("%02X ", data[i]);
+}
+
+printf("\n");
+
+
 
     /* Combine pressure bytes */
     *raw_pressure =
@@ -197,7 +215,85 @@ int bmp280_read_measurements(struct bmp280 *dev,
     return 0;
 }
 
+int bmp280_compensate_temperature(struct bmp280 *dev,
+                                  uint32_t raw_temperature,
+                                  int32_t *temperature)
+{
+    int32_t var1;
+    int32_t var2;
+    int32_t t_fine;
+
+    var1 = ((((raw_temperature >> 3) -
+              ((int32_t)dev->calib.dig_T1 << 1))) *
+            ((int32_t)dev->calib.dig_T2)) >> 11;
+
+	int32_t x;
+
+x = (raw_temperature >> 4) -
+    (int32_t)dev->calib.dig_T1;
+
+var2 = (((x * x) >> 12) *
+        (int32_t)dev->calib.dig_T3) >> 14;
 
 
+
+    t_fine = var1 + var2;
+
+    *temperature = (t_fine * 5 + 128) >> 8;
+   printf("var1 = %d\n", var1);
+printf("var2 = %d\n", var2);
+printf("t_fine = %d\n", t_fine);
+    dev->t_fine = t_fine;
+
+    return 0;
+}
+
+
+int bmp280_compensate_pressure(struct bmp280 *dev,
+                               uint32_t raw_pressure,
+                               uint32_t *pressure)
+{
+    int64_t var1;
+    int64_t var2;
+    int64_t p;
+
+    var1 = (int64_t)dev->t_fine - 128000;
+
+    var2 = var1 * var1 *
+           (int64_t)dev->calib.dig_P6;
+
+    var2 = var2 +
+           ((var1 * (int64_t)dev->calib.dig_P5) << 17);
+
+    var2 = var2 +
+           ((int64_t)dev->calib.dig_P4 << 35);
+
+    var1 = ((var1 * var1 *
+             (int64_t)dev->calib.dig_P3) >> 8) +
+           ((var1 * (int64_t)dev->calib.dig_P2) << 12);
+
+    var1 = (((((int64_t)1 << 47) + var1) *
+             (int64_t)dev->calib.dig_P1) >> 33);
+
+    if (var1 == 0)
+        return -1;
+
+    p = 1048576 - raw_pressure;
+
+    p = (((p << 31) - var2) * 3125) / var1;
+
+    var1 = ((int64_t)dev->calib.dig_P9 *
+            (p >> 13) *
+            (p >> 13)) >> 25;
+
+    var2 = ((int64_t)dev->calib.dig_P8 * p) >> 19;
+
+    p = ((p + var1 + var2) >> 8) +
+        ((int64_t)dev->calib.dig_P7 << 4);
+
+    *pressure = (uint32_t)p;
+
+    return 0;
+}
 
 

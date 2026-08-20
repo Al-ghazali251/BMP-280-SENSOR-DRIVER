@@ -37,12 +37,19 @@ struct bmp280_calib {
 struct bmp280 {
     int fd;
     uint8_t address;
+    int32_t t_fine;
     struct bmp280_calib calib;
 };
 
 int bmp280_read_reg(struct bmp280 *dev,
                     uint8_t reg,
                     uint8_t *value);
+
+
+int bmp280_compensate_pressure(struct bmp280 *dev,
+                               uint32_t raw_pressure,
+                               uint32_t *pressure);
+
 
 
 int bmp280_read_regs(struct bmp280 *dev,
@@ -79,6 +86,10 @@ int bmp280_write_reg(struct bmp280 *dev,
 int bmp280_configure(struct bmp280 *dev);
 
 int bmp280_configure_filter(struct bmp280 *dev);
+
+int bmp280_compensate_temperature(struct bmp280 *dev,
+                                  uint32_t raw_temperature,
+                                  int32_t *temperature);
 
 
 #endif

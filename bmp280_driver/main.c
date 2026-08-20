@@ -108,6 +108,40 @@ printf("Raw pressure: %u\n", raw_pressure);
 printf("Raw temperature: %u\n", raw_temperature);
 
 
+int32_t temperature;
+
+if (bmp280_compensate_temperature(&dev,
+                                  raw_temperature,
+                                  &temperature) < 0)
+{
+    perror("Failed to compensate temperature");
+    close(dev.fd);
+    return 1;
+}
+
+printf("Temperature: %d.%02d C\n",
+       temperature / 100,
+       temperature % 100);
+
+
+uint32_t pressure;
+
+if (bmp280_compensate_pressure(&dev,
+                               raw_pressure,
+                               &pressure) < 0)
+{
+    perror("Failed to compensate pressure");
+    close(dev.fd);
+    return 1;
+}
+
+printf("Pressure: %u Pa\n", pressure);
+printf("Pressure: %u.%02u hPa\n",
+       pressure / 100,
+       pressure % 100);
+
+
+
     /* Close I2C device */
     close(dev.fd);
 
