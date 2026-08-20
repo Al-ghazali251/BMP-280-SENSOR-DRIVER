@@ -291,8 +291,7 @@ int bmp280_compensate_pressure(struct bmp280 *dev,
     p = ((p + var1 + var2) >> 8) +
         ((int64_t)dev->calib.dig_P7 << 4);
 
-    *pressure = (uint32_t)p;
-
+   *pressure = (uint32_t)(p >> 8);
     return 0;
 }
 
