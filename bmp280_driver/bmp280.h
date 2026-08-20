@@ -9,7 +9,7 @@
 #define BMP280_CALIB_LENGTH 24
 #define BMP280_REG_ID   0xD0
 #define BMP280_CHIP_ID  0x58
-
+#define BMP280_REG_CTRL_MEAS 0xF4
 
 struct bmp280_calib {
     uint16_t dig_T1;
@@ -51,6 +51,16 @@ int bmp280_read_regs(struct bmp280 *dev,
 
 
 int bmp280_read_calibration(struct bmp280 *dev);
+
+int bmp280_write_reg(struct bmp280 *dev,
+                     uint8_t reg,
+                     uint8_t value);
+
+
+
+
+
+int bmp280_configure(struct bmp280 *dev);
 
 
 #endif

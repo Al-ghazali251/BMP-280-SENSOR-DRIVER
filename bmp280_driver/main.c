@@ -65,6 +65,36 @@ int main(void)
     printf("dig_P8 = %d\n", dev.calib.dig_P8);
     printf("dig_P9 = %d\n", dev.calib.dig_P9);
 
+
+	/* Read calibration */
+if (bmp280_read_calibration(&dev) < 0)
+{
+    perror("Failed to read calibration data");
+    close(dev.fd);
+    return 1;
+}
+
+/* Configure BMP280 */
+if (bmp280_configure(&dev) < 0)
+{
+    perror("Failed to configure BMP280");
+    close(dev.fd);
+    return 1;
+}
+
+
+uint8_t ctrl_meas;
+
+if (bmp280_read_reg(&dev, BMP280_REG_CTRL_MEAS, &ctrl_meas) < 0)
+{
+    perror("Failed to read CTRL_MEAS");
+    close(dev.fd);
+    return 1;
+}
+
+printf("CTRL_MEAS: 0x%02X\n", ctrl_meas);
+
+
     /* Close I2C device */
     close(dev.fd);
 

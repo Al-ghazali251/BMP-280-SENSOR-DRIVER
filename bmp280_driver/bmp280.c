@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+
 int bmp280_read_reg(struct bmp280 *dev,
                     uint8_t reg,
                     uint8_t *value)
@@ -17,14 +18,17 @@ int bmp280_read_reg(struct bmp280 *dev,
     return 0;
 }
 
+
 int bmp280_read_regs(struct bmp280 *dev,
                      uint8_t reg,
                      uint8_t *buffer,
                      uint8_t length)
 {
+    /* Send the starting register address */
     if (write(dev->fd, &reg, 1) != 1)
         return -1;
 
+    /* Read multiple consecutive bytes */
     if (read(dev->fd, buffer, length) != length)
         return -1;
 
@@ -40,7 +44,9 @@ int bmp280_read_calibration(struct bmp280 *dev)
     if (bmp280_read_regs(dev, 0x88, calib_data, 24) < 0)
         return -1;
 
+
     /* Temperature calibration values */
+
     dev->calib.dig_T1 =
         (uint16_t)calib_data[1] << 8 |
         calib_data[0];
@@ -53,7 +59,9 @@ int bmp280_read_calibration(struct bmp280 *dev)
         (int16_t)((uint16_t)calib_data[5] << 8 |
                   calib_data[4]);
 
+
     /* Pressure calibration values */
+
     dev->calib.dig_P1 =
         (uint16_t)calib_data[7] << 8 |
         calib_data[6];
@@ -89,6 +97,49 @@ int bmp280_read_calibration(struct bmp280 *dev)
     dev->calib.dig_P9 =
         (int16_t)((uint16_t)calib_data[23] << 8 |
                   calib_data[22]);
+
+    return 0;
+}
+
+
+int bmp280_write_reg(struct bmp280 *dev,
+                     uint8_t reg,
+                     uint8_t value)
+{
+    uint8_t data[2];
+
+    /* First byte = register address */
+    data[0] = reg;
+
+    /* Second byte = value to write */
+    data[1] = value;
+
+    /* Send register + value */
+    if (write(dev->fd, data, 2) != 2)
+        return -1;
+
+    return 0;
+}
+
+
+int bmp280_configure(struct bmp280 *dev)
+{
+    uint8_t config = 0;
+
+    /* Temperature oversampling x1 */
+    config |= (1 << 5);
+
+    /* Pressure oversampling x1 */
+    config |= (1 << 2);
+
+    /* Normal mode */
+    config |= 3;
+
+    /* Write configuration to CTRL_MEAS register (0xF4) */
+    if (bmp280_write_reg(dev,
+                         BMP280_REG_CTRL_MEAS,
+                         config) < 0)
+        return -1;
 
     return 0;
 }
