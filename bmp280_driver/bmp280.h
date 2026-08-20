@@ -10,6 +10,11 @@
 #define BMP280_REG_ID   0xD0
 #define BMP280_CHIP_ID  0x58
 #define BMP280_REG_CTRL_MEAS 0xF4
+#define BMP280_REG_CONFIG 0xF5
+#define BMP280_REG_PRESS_MSB 0xF7
+#define BMP280_MEAS_LENGTH   6
+
+
 
 struct bmp280_calib {
     uint16_t dig_T1;
@@ -47,10 +52,21 @@ int bmp280_read_regs(struct bmp280 *dev,
 
 
 
+int bmp280_read_measurements(struct bmp280 *dev,
+                             uint32_t *raw_pressure,
+                             uint32_t *raw_temperature);
+
+
 
 
 
 int bmp280_read_calibration(struct bmp280 *dev);
+
+
+int bmp280_read_measurements(struct bmp280 *dev,
+                             uint32_t *raw_pressure,
+                             uint32_t *raw_temperature);
+
 
 int bmp280_write_reg(struct bmp280 *dev,
                      uint8_t reg,
@@ -61,6 +77,8 @@ int bmp280_write_reg(struct bmp280 *dev,
 
 
 int bmp280_configure(struct bmp280 *dev);
+
+int bmp280_configure_filter(struct bmp280 *dev);
 
 
 #endif

@@ -143,3 +143,61 @@ int bmp280_configure(struct bmp280 *dev)
 
     return 0;
 }
+
+
+
+int bmp280_configure_filter(struct bmp280 *dev)
+{
+    uint8_t config = 0;
+
+    /* Standby time = 0.5 ms */
+    config |= (0 << 5);
+
+    /* IIR filter = off */
+    config |= (0 << 2);
+
+    /* SPI 3-wire disabled */
+    config |= 0;
+
+    if (bmp280_write_reg(dev,
+                         BMP280_REG_CONFIG,
+                         config) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+
+int bmp280_read_measurements(struct bmp280 *dev,
+                             uint32_t *raw_pressure,
+                             uint32_t *raw_temperature)
+{
+    uint8_t data[6];
+
+    /* Read pressure and temperature registers: 0xF7 to 0xFC */
+    if (bmp280_read_regs(dev,
+                         BMP280_REG_PRESS_MSB,
+                         data,
+                         6) < 0)
+        return -1;
+
+    /* Combine pressure bytes */
+    *raw_pressure =
+        ((uint32_t)data[0] << 12) |
+        ((uint32_t)data[1] << 4) |
+        ((uint32_t)data[2] >> 4);
+
+    /* Combine temperature bytes */
+    *raw_temperature =
+        ((uint32_t)data[3] << 12) |
+        ((uint32_t)data[4] << 4) |
+        ((uint32_t)data[5] >> 4);
+
+    return 0;
+}
+
+
+
+
+

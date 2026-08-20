@@ -11,6 +11,8 @@ int main(void)
 {
     struct bmp280 dev;
     uint8_t chip_id;
+    uint8_t ctrl_meas;
+    uint8_t config;
 
     /* Open the I2C bus */
     dev.fd = open(BMP280_I2C_BUS, O_RDWR);
@@ -21,10 +23,10 @@ int main(void)
         return 1;
     }
 
-    /* Set the BMP280 I2C address */
+    /* Set BMP280 address */
     dev.address = BMP280_I2C_ADDR;
 
-    /* Select the BMP280 */
+    /* Select BMP280 */
     if (ioctl(dev.fd, I2C_SLAVE, dev.address) < 0)
     {
         perror("Failed to select BMP280");
@@ -50,49 +52,60 @@ int main(void)
         return 1;
     }
 
-    /* Display calibration values */
-    printf("dig_T1 = %u\n", dev.calib.dig_T1);
-    printf("dig_T2 = %d\n", dev.calib.dig_T2);
-    printf("dig_T3 = %d\n", dev.calib.dig_T3);
+    /* Configure CTRL_MEAS */
+    if (bmp280_configure(&dev) < 0)
+    {
+        perror("Failed to configure BMP280");
+        close(dev.fd);
+        return 1;
+    }
 
-    printf("dig_P1 = %u\n", dev.calib.dig_P1);
-    printf("dig_P2 = %d\n", dev.calib.dig_P2);
-    printf("dig_P3 = %d\n", dev.calib.dig_P3);
-    printf("dig_P4 = %d\n", dev.calib.dig_P4);
-    printf("dig_P5 = %d\n", dev.calib.dig_P5);
-    printf("dig_P6 = %d\n", dev.calib.dig_P6);
-    printf("dig_P7 = %d\n", dev.calib.dig_P7);
-    printf("dig_P8 = %d\n", dev.calib.dig_P8);
-    printf("dig_P9 = %d\n", dev.calib.dig_P9);
+    /* Verify CTRL_MEAS */
+    if (bmp280_read_reg(&dev,
+                        BMP280_REG_CTRL_MEAS,
+                        &ctrl_meas) < 0)
+    {
+        perror("Failed to read CTRL_MEAS");
+        close(dev.fd);
+        return 1;
+    }
 
+    printf("CTRL_MEAS: 0x%02X\n", ctrl_meas);
 
-	/* Read calibration */
-if (bmp280_read_calibration(&dev) < 0)
+    /* Configure CONFIG register */
+    if (bmp280_configure_filter(&dev) < 0)
+    {
+        perror("Failed to configure BMP280 filter");
+        close(dev.fd);
+        return 1;
+    }
+
+    /* Verify CONFIG */
+    if (bmp280_read_reg(&dev,
+                        BMP280_REG_CONFIG,
+                        &config) < 0)
+    {
+        perror("Failed to read CONFIG");
+        close(dev.fd);
+        return 1;
+    }
+
+    printf("CONFIG: 0x%02X\n", config);
+
+uint32_t raw_pressure;
+uint32_t raw_temperature;
+
+if (bmp280_read_measurements(&dev,
+                             &raw_pressure,
+                             &raw_temperature) < 0)
 {
-    perror("Failed to read calibration data");
+    perror("Failed to read measurements");
     close(dev.fd);
     return 1;
 }
 
-/* Configure BMP280 */
-if (bmp280_configure(&dev) < 0)
-{
-    perror("Failed to configure BMP280");
-    close(dev.fd);
-    return 1;
-}
-
-
-uint8_t ctrl_meas;
-
-if (bmp280_read_reg(&dev, BMP280_REG_CTRL_MEAS, &ctrl_meas) < 0)
-{
-    perror("Failed to read CTRL_MEAS");
-    close(dev.fd);
-    return 1;
-}
-
-printf("CTRL_MEAS: 0x%02X\n", ctrl_meas);
+printf("Raw pressure: %u\n", raw_pressure);
+printf("Raw temperature: %u\n", raw_temperature);
 
 
     /* Close I2C device */
